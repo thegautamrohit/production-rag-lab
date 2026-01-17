@@ -2,9 +2,18 @@
 
 import { useState } from "react";
 
+export type Source = {
+  "loc.lines.from": number;
+  "loc.lines.to": number;
+  "loc.pageNumber": number;
+};
+
 export default function Home() {
   const [question, setQuestion] = useState("");
-  const [response, setResponse] = useState("");
+  const [response, setResponse] = useState({
+    response: "",
+    sources: [] as Array<Source>,
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -12,26 +21,28 @@ export default function Home() {
     if (!question.trim()) return;
 
     setIsLoading(true);
-    setResponse("");
+    setResponse({
+      response: "",
+      sources: [] as Array<Source>,
+    });
 
     try {
-      const response = await fetch('/api/ask-rag', {
-        method: 'POST',
+      const response = await fetch("/api/ask-rag", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ query: question }),
-      })
+      });
 
       const result = await response.json();
-      console.log(result);
-      setResponse(result.result);
+      // console.log(result);
+      setResponse(result);
     } catch (error) {
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-
   };
 
   return (
@@ -75,11 +86,39 @@ export default function Home() {
           </form>
         </div>
 
-        {response && (
+        {response?.response?.length > 0 && (
           <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
-              {response}
+              {response?.response}
             </h2>
+          </div>
+        )}
+
+        {response?.sources?.length > 0 && (
+          <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+              Sources:
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {response?.sources?.map((item: Source, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/50"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                      Source {index + 1}
+                    </span>
+                    <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                      Page {item?.["loc.pageNumber"]}
+                    </span>
+                  </div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Lines {item?.["loc.lines.from"]} - {item?.["loc.lines.to"]}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
